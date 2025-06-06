@@ -1,0 +1,1530 @@
+openapi: 3.0.3
+info:
+  title: BlueIQ API Gateway
+  version: 1.0.0
+  description: |
+    This document describes the API for the BlueIQ API Gateway.
+    It serves as the single entry point for all client interactions with the BlueIQ microservices.
+    This specification is designed to be a reference for consumers and a template for similar gateway patterns.
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development server
+  - url: https://dev.blueiq.example.com/api/v1
+    description: Development environment
+  - url: https://staging.blueiq.example.com/api/v1
+    description: Staging environment
+  - url: https://blueiq.example.com/api/v1
+    description: Production environment
+
+components:
+  schemas:
+    UserLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: adminuser
+          description: The user's username.
+        password:
+          type: string
+          example: 'P@$$wOrd123!'
+          description: The user's password.
+    LoginSuccessResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          format: jwt
+          description: JSON Web Token for authenticated access.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        tokenType:
+          type: string
+          example: Bearer
+          description: Type of the token.
+        expiresIn:
+          type: integer
+          example: 3600
+          description: Token expiry time in seconds.
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Invalid input provided.
+        details:
+          type: string
+          nullable: true
+          example: The 'username' field is required.
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          readOnly: true
+        username:
+          type: string
+          description: The user's unique username.
+          example: johndoe
+        email:
+          type: string
+          format: email
+          description: The user's email address.
+          example: johndoe@example.com
+        firstName:
+          type: string
+          nullable: true
+          description: The user's first name.
+          example: John
+        lastName:
+          type: string
+          nullable: true
+          description: The user's last name.
+          example: Doe
+        isActive:
+          type: boolean
+          description: Indicates if the user account is active.
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the user was created.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the user was last updated.
+          readOnly: true
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        totalCount:
+          type: integer
+          description: Total number of users matching the query.
+          example: 100
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - password
+        - email
+      properties:
+        username:
+          type: string
+          description: Desired username for the new user.
+          example: newuser
+        password:
+          type: string
+          format: password
+          description: Desired password for the new user. Will be hashed by the server.
+          example: 'Str0ngP@$$wOrd!'
+        email:
+          type: string
+          format: email
+          description: Email address for the new user.
+          example: newuser@example.com
+        firstName:
+          type: string
+          nullable: true
+          description: First name of the new user.
+          example: New
+        lastName:
+          type: string
+          nullable: true
+          description: Last name of the new user.
+          example: User
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: The user's new email address.
+          example: johndoe_updated@example.com
+        firstName:
+          type: string
+          nullable: true
+          description: The user's new first name.
+          example: Johnathan
+        lastName:
+          type: string
+          nullable: true
+          description: The user's new last name.
+          example: Doer
+        isActive:
+          type: boolean
+          description: Set to false to deactivate the user account.
+          example: true
+    WorkflowDefinitionStep:
+      type: object
+      description: Represents a single step within a workflow definition.
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the step within the workflow definition.
+          example: step_123
+        name:
+          type: string
+          description: Display name of the step.
+          example: "Initialize Variables"
+        type:
+          type: string
+          description: Type of the plugin or action this step executes.
+          example: "core.SetVariableAction"
+        configuration:
+          type: object
+          description: Configuration specific to this step type.
+          additionalProperties: true
+          example:
+            variableName: "customerName"
+            value: "John Doe"
+        nextStepId:
+          type: string
+          nullable: true
+          description: ID of the next step to execute. Null if it's the last step or uses conditional branching.
+          example: step_456
+        # Add other relevant properties like errorHandling, conditions, etc.
+
+    WorkflowDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the workflow definition.
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          readOnly: true
+        name:
+          type: string
+          description: Name of the workflow definition.
+          example: "New Customer Onboarding"
+        description:
+          type: string
+          nullable: true
+          description: A brief description of the workflow.
+          example: "Handles the process for onboarding new customers."
+        version:
+          type: integer
+          description: Version number of the workflow definition.
+          example: 1
+          readOnly: true
+        isEnabled:
+          type: boolean
+          description: Indicates if the workflow definition is active and can be instantiated.
+          example: true
+        definitionJson:
+          type: string # Or consider 'object' if you want to represent the structure directly
+          description: The JSON string representing the structured workflow definition (e.g., steps, transitions, parameters). Schema to be finalized during detailed design.
+          example: '{ "startNode": "node1", "nodes": { "node1": { ... } } }' 
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the workflow definition was created.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the workflow definition was last updated.
+          readOnly: true
+
+    WorkflowDefinitionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowDefinition'
+        totalCount:
+          type: integer
+          description: Total number of workflow definitions matching the query.
+          example: 50
+
+    CreateWorkflowDefinitionRequest:
+      type: object
+      required:
+        - name
+        - definitionJson
+      properties:
+        name:
+          type: string
+          description: Name for the new workflow definition.
+          example: "Order Processing Workflow"
+        description:
+          type: string
+          nullable: true
+          description: Optional description for the workflow definition.
+        definitionJson:
+          type: string # Or 'object'
+          description: The JSON string representing the structured workflow definition.
+          example: '{ "startNode": "node1", "nodes": { "node1": { ... } } }'
+        isEnabled:
+          type: boolean
+          default: true
+          description: Set to true to enable the workflow definition upon creation.
+
+    UpdateWorkflowDefinitionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: New name for the workflow definition.
+          example: "Revised Order Processing Workflow"
+        description:
+          type: string
+          nullable: true
+          description: New optional description for the workflow definition.
+        definitionJson:
+          type: string # Or 'object'
+          description: The updated JSON string representing the structured workflow definition.
+        isEnabled:
+          type: boolean
+          description: Set to true to enable or false to disable the workflow definition.
+
+    WorkflowInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the workflow instance.
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          readOnly: true
+        workflowDefinitionId:
+          type: string
+          format: uuid
+          description: ID of the workflow definition this instance is based on.
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        status:
+          type: string
+          description: Current status of the workflow instance.
+          enum: [Running, Completed, Failed, Cancelled, Suspended, Pending]
+          example: Running
+        currentStepId:
+          type: string
+          nullable: true
+          description: ID of the current step the workflow instance is executing or paused at.
+          example: step_456
+        variables:
+          type: object
+          description: Current variables and their values within the workflow instance.
+          additionalProperties: true
+          example:
+            customerName: "Jane Doe"
+            orderId: "ORD-2024-001"
+        startedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the workflow instance started.
+          readOnly: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of when the workflow instance completed or was terminated.
+          readOnly: true
+        # Add other relevant properties like triggeredBy, errorDetails, etc.
+
+    WorkflowInstanceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowInstance'
+        totalCount:
+          type: integer
+          description: Total number of workflow instances matching the query.
+          example: 200
+
+    StartWorkflowInstanceRequest:
+      type: object
+      required:
+        - workflowDefinitionId
+      properties:
+        workflowDefinitionId:
+          type: string
+          format: uuid
+          description: ID of the workflow definition to instantiate.
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        inputParameters:
+          type: object
+          description: Initial input parameters for the workflow instance.
+          additionalProperties: true
+          nullable: true
+          example:
+            productId: "PROD-XYZ"
+            quantity: 10
+        correlationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional correlation ID for tracking or relating instances.
+          example: c3d4e5f6-7890-1234-5678-90abcdef12
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the role.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          readOnly: true
+        name:
+          type: string
+          description: Unique name of the role.
+          example: "WorkflowDesigner"
+          minLength: 3
+          maxLength: 50
+        description:
+          type: string
+          nullable: true
+          description: A brief description of the role's purpose and permissions.
+          example: "Can create, update, and test workflow definitions."
+        isSystemRole:
+          type: boolean
+          description: Indicates if this is a system-defined role that cannot be modified.
+          example: false
+          readOnly: true
+        permissions:
+          type: array
+          description: List of permission strings assigned to this role.
+          items:
+            type: string
+          example: ["workflows:read", "workflows:write", "workflows:execute"]
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the role was created.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the role was last updated.
+          readOnly: true
+
+    RoleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        totalCount:
+          type: integer
+          description: Total number of roles matching the query.
+          example: 15
+
+    CreateRoleRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Unique name for the new role.
+          example: "WorkflowViewer"
+          minLength: 3
+          maxLength: 50
+        description:
+          type: string
+          nullable: true
+          description: Optional description for the role.
+        permissions:
+          type: array
+          description: Initial list of permission strings to assign to this role.
+          items:
+            type: string
+          example: ["workflows:read"]
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: New name for the role.
+          example: "SeniorWorkflowDesigner"
+          minLength: 3
+          maxLength: 50
+        description:
+          type: string
+          nullable: true
+          description: Updated description for the role.
+        permissions:
+          type: array
+          description: Complete list of permission strings for this role (replaces existing).
+          items:
+            type: string
+          example: ["workflows:read", "workflows:write", "workflows:execute", "workflows:approve"]
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The unique identifier for the role.
+          example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+          readOnly: true
+        name:
+          type: string
+          description: The name of the role.
+          example: 'Administrator'
+        description:
+          type: string
+          nullable: true
+          description: A brief description of the role.
+          example: 'Manages all system settings and users.'
+        permissions:
+          type: array
+          items:
+            type: string
+          description: A list of permissions associated with this role.
+          example: ['manage_users', 'view_reports']
+      required:
+        - id
+        - name
+    RoleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        totalCount:
+          type: integer
+          description: Total number of roles available.
+          example: 25
+    CreateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name for the new role.
+          example: 'Editor'
+        description:
+          type: string
+          nullable: true
+          description: A brief description for the new role.
+          example: 'Can create and edit content.'
+        permissions:
+          type: array
+          items:
+            type: string
+          description: A list of permissions to assign to the new role.
+          example: ['create_content', 'edit_own_content']
+      required:
+        - name
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The updated name for the role.
+          example: 'Senior Editor'
+        description:
+          type: string
+          nullable: true
+          description: The updated description for the role.
+          example: 'Can create, edit, and publish content.'
+        permissions:
+          type: array
+          items:
+            type: string
+          description: The updated list of permissions for the role.
+          example: ['create_content', 'edit_any_content', 'publish_content']
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Authorization header using the Bearer scheme.
+
+security:
+  - BearerAuth: []
+
+  - name: Roles
+    description: Operations related to user roles and permissions management.
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: Authenticates a user and returns a JWT upon successful login.
+      requestBody:
+        description: User credentials for login.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Login successful, JWT returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Invalid request payload (e.g., missing fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication failed (e.g., invalid credentials).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users:
+    get:
+      tags:
+        - User Management
+      summary: List Users
+      description: Retrieves a list of users. Supports pagination and filtering (to be detailed further).
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of users to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - User Management
+      summary: Create User
+      description: Creates a new user in the system.
+      requestBody:
+        description: User object to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request payload (e.g., validation error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (e.g., username or email already exists).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        description: ID of the user to operate on.
+        schema:
+          type: string
+          format: uuid
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+    get:
+      tags:
+        - User Management
+      summary: Get User by ID
+      description: Retrieves a specific user by their unique ID.
+      responses:
+        '200':
+          description: Successful retrieval of user details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - User Management
+      summary: Update User
+      description: Updates an existing user's details.
+      requestBody:
+        description: User object with fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request payload (e.g., validation error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - User Management
+      summary: Delete User
+      description: Deletes a specific user by their unique ID.
+      responses:
+        '204':
+          description: User deleted successfully.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /roles:
+    get:
+      tags:
+        - Role Management
+      summary: List Roles
+      description: Retrieves a list of roles. Supports pagination.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of roles to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of roles to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: includeSystemRoles
+          in: query
+          description: Whether to include system-defined roles in the results.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: A list of roles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Role Management
+      summary: Create Role
+      description: Creates a new role with the specified permissions.
+      requestBody:
+        description: Role object to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A role with the same name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /roles/{roleId}:
+    parameters:
+      - name: roleId
+        in: path
+        required: true
+        description: ID of the role to operate on.
+        schema:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+    get:
+      tags:
+        - Role Management
+      summary: Get Role by ID
+      description: Retrieves a specific role by its ID.
+      responses:
+        '200':
+          description: Successful retrieval of role details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Role Management
+      summary: Update Role
+      description: Updates an existing role's details and permissions.
+      requestBody:
+        description: Role object with fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Cannot modify a system role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A role with the same name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Role Management
+      summary: Delete Role
+      description: Deletes a specific role by its ID. System roles cannot be deleted.
+      responses:
+        '204':
+          description: Role deleted successfully.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Cannot delete a system role or role is in use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/definitions:
+    get:
+      tags:
+        - Workflow Definitions
+      summary: List Workflow Definitions
+      description: Retrieves a list of workflow definitions. Supports pagination and filtering.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of definitions to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of definitions to skip.
+          required: false
+          schema:
+            type: integer
+            default: 0
+        # Add other filter parameters like 'nameContains', 'isEnabled', etc.
+      responses:
+        '200':
+          description: A list of workflow definitions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinitionListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Workflow Definitions
+      summary: Create Workflow Definition
+      description: Creates a new workflow definition.
+      requestBody:
+        description: Workflow definition object to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowDefinitionRequest'
+      responses:
+        '201':
+          description: Workflow definition created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/definitions/{definitionId}:
+    parameters:
+      - name: definitionId
+        in: path
+        required: true
+        description: ID of the workflow definition to operate on.
+        schema:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+    get:
+      tags:
+        - Workflow Definitions
+      summary: Get Workflow Definition by ID
+      description: Retrieves a specific workflow definition by its ID.
+      responses:
+        '200':
+          description: Successful retrieval of workflow definition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Workflow Definitions
+      summary: Update Workflow Definition
+      description: Updates an existing workflow definition.
+      requestBody:
+        description: Workflow definition object with fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowDefinitionRequest'
+      responses:
+        '200':
+          description: Workflow definition updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Workflow Definitions
+      summary: Delete Workflow Definition
+      description: Deletes a specific workflow definition by its ID.
+      responses:
+        '204':
+          description: Workflow definition deleted successfully.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/instances:
+    get:
+      tags:
+        - Workflow Instances
+      summary: List Workflow Instances
+      description: Retrieves a list of workflow instances. Supports pagination and filtering.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of instances to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of instances to skip.
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: workflowDefinitionId
+          in: query
+          description: Filter instances by a specific workflow definition ID.
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter instances by status.
+          required: false
+          schema:
+            type: string
+            enum: [Running, Completed, Failed, Cancelled, Suspended, Pending]
+        # Add other filter parameters like 'startedAfter', 'completedBefore', 'correlationId', etc.
+      responses:
+        '200':
+          description: A list of workflow instances.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Workflow Instances
+      summary: Start Workflow Instance
+      description: Creates and starts a new instance of a workflow definition.
+      requestBody:
+        description: Details for starting a new workflow instance.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartWorkflowInstanceRequest'
+      responses:
+        '201':
+          description: Workflow instance started successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '400':
+          description: Invalid request payload (e.g., definitionId not found, invalid inputs).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/instances/{instanceId}:
+    parameters:
+      - name: instanceId
+        in: path
+        required: true
+        description: ID of the workflow instance to operate on.
+        schema:
+          type: string
+          format: uuid
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+    get:
+      tags:
+        - Workflow Instances
+      summary: Get Workflow Instance by ID
+      description: Retrieves a specific workflow instance by its ID.
+      responses:
+        '200':
+          description: Successful retrieval of workflow instance details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow instance not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /roles:
+    get:
+      tags:
+        - Roles
+      summary: List All Roles
+      description: Retrieves a list of all user roles, potentially with pagination.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of roles to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of roles to skip for pagination.
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: A list of roles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Roles
+      summary: Create Role
+      description: Creates a new user role.
+      requestBody:
+        description: Role object to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - Role with the same name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /roles/{roleId}:
+    parameters:
+      - name: roleId
+        in: path
+        required: true
+        description: ID of the role to operate on.
+        schema:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+    get:
+      tags:
+        - Roles
+      summary: Get Role by ID
+      description: Retrieves a specific role by its ID.
+      responses:
+        '200':
+          description: Successful retrieval of role details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Roles
+      summary: Update Role
+      description: Updates an existing role.
+      requestBody:
+        description: Role object with fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Roles
+      summary: Delete Role
+      description: Deletes a role by its ID.
+      responses:
+        '204':
+          description: Role deleted successfully.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
