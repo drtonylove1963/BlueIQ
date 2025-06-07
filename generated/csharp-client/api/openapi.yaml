@@ -1,0 +1,2971 @@
+openapi: 3.0.3
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: |
+    This document describes the API for the BlueIQ API Gateway.
+    It serves as the single entry point for all client interactions with the BlueIQ microservices.
+    This specification is designed to be a reference for consumers and a template for similar gateway patterns.
+  title: BlueIQ API Gateway
+  version: 1.0.0
+servers:
+- description: Local development server
+  url: http://localhost:5000/api/v1
+- description: Development environment
+  url: https://dev.blueiq.example.com/api/v1
+- description: Staging environment
+  url: https://staging.blueiq.example.com/api/v1
+- description: Production environment
+  url: https://blueiq.example.com/api/v1
+security:
+- BearerAuth: []
+tags:
+- description: Operations related to user authentication and session management.
+  name: Authentication
+- description: Operations related to managing user accounts.
+  name: User Management
+- description: Operations related to managing user roles and permissions.
+  name: Role Management
+- description: Operations related to managing workflow blueprints/templates.
+  name: Workflow Definitions
+- description: Operations related to managing running or completed instances of workflows.
+  name: Workflow Instances
+paths:
+  /workflows/instances/{instanceId}/cancel:
+    post:
+      description: Cancels a currently running workflow instance. The instance must
+        be in a cancellable state.
+      operationId: cancelWorkflowInstance
+      parameters:
+      - description: ID of the workflow instance to cancel.
+        explode: false
+        in: path
+        name: instanceId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Workflow instance cancelled successfully.
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "409":
+          content:
+            application/json:
+              examples:
+                duplicateResource:
+                  summary: Duplicate resource
+                  value:
+                    statusCode: 409
+                    message: A resource with the specified identifier already exists.
+                    details: User with email 'existing@example.com' already exists.
+                editConflict:
+                  summary: Edit conflict
+                  value:
+                    statusCode: 409
+                    message: The resource was modified by another process. Please
+                      refresh and try again.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict - The request could not be completed due to a conflict
+            with the current state of the resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Cancel Workflow Instance
+      tags:
+      - Workflow Instances
+  /workflows/instances/{instanceId}/suspend:
+    post:
+      description: Suspends a currently running workflow instance. A suspended instance
+        can be resumed later.
+      operationId: suspendWorkflowInstance
+      parameters:
+      - description: ID of the workflow instance to suspend.
+        explode: false
+        in: path
+        name: instanceId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Workflow instance suspended successfully.
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "409":
+          content:
+            application/json:
+              examples:
+                duplicateResource:
+                  summary: Duplicate resource
+                  value:
+                    statusCode: 409
+                    message: A resource with the specified identifier already exists.
+                    details: User with email 'existing@example.com' already exists.
+                editConflict:
+                  summary: Edit conflict
+                  value:
+                    statusCode: 409
+                    message: The resource was modified by another process. Please
+                      refresh and try again.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict - The request could not be completed due to a conflict
+            with the current state of the resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Suspend Workflow Instance
+      tags:
+      - Workflow Instances
+  /workflows/instances/{instanceId}/resume:
+    post:
+      description: Resumes a previously suspended workflow instance.
+      operationId: resumeWorkflowInstance
+      parameters:
+      - description: ID of the workflow instance to resume.
+        explode: false
+        in: path
+        name: instanceId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Workflow instance resumed successfully.
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "409":
+          content:
+            application/json:
+              examples:
+                duplicateResource:
+                  summary: Duplicate resource
+                  value:
+                    statusCode: 409
+                    message: A resource with the specified identifier already exists.
+                    details: User with email 'existing@example.com' already exists.
+                editConflict:
+                  summary: Edit conflict
+                  value:
+                    statusCode: 409
+                    message: The resource was modified by another process. Please
+                      refresh and try again.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict - The request could not be completed due to a conflict
+            with the current state of the resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Resume Workflow Instance
+      tags:
+      - Workflow Instances
+  /workflows/instances/{instanceId}/retry:
+    post:
+      description: "Retries a workflow instance that is in a failed or pending_retry\
+        \ state, typically from its last failed step."
+      operationId: retryWorkflowInstance
+      parameters:
+      - description: ID of the workflow instance to retry.
+        explode: false
+        in: path
+        name: instanceId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Workflow instance retry initiated successfully.
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "409":
+          content:
+            application/json:
+              examples:
+                duplicateResource:
+                  summary: Duplicate resource
+                  value:
+                    statusCode: 409
+                    message: A resource with the specified identifier already exists.
+                    details: User with email 'existing@example.com' already exists.
+                editConflict:
+                  summary: Edit conflict
+                  value:
+                    statusCode: 409
+                    message: The resource was modified by another process. Please
+                      refresh and try again.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict - The request could not be completed due to a conflict
+            with the current state of the resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Retry Workflow Instance
+      tags:
+      - Workflow Instances
+  /auth/login:
+    post:
+      description: Authenticates a user with their credentials and returns JWT access
+        and refresh tokens.
+      operationId: loginUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+        description: User credentials for login
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+          description: "Login successful, returns access token"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid username or password
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Authentication failed
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security: []
+      summary: Log in a user
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      description: Obtains a new JWT access token using a valid refresh token.
+      operationId: refreshToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+        description: Refresh token
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+          description: Token refresh successful
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid or expired refresh token
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security: []
+      summary: Refresh an access token
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      description: "Invalidates the user's current session. The specifics of invalidation\
+        \ (e.g., token blocklisting) depend on server implementation."
+      operationId: logoutUser
+      responses:
+        "204":
+          description: Logout successful
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Log out a user
+      tags:
+      - Authentication
+  /users:
+    get:
+      description: Retrieves a paginated list of all user accounts. Supports query
+        parameters for pagination.
+      operationId: listUsers
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - description: Number of users per page
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          default: 20
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+          description: A list of users
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - User Management
+    post:
+      description: "Creates a new user account. Requires username, email, and password.\
+        \ Optional fields include first name, last name, and role assignments."
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+        description: User object to be created
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: User created successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: User already exists
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Create a new user
+      tags:
+      - User Management
+  /users/{userId}:
+    delete:
+      description: Deletes a specific user account by their unique ID. This operation
+        is typically irreversible.
+      operationId: deleteUser
+      parameters:
+      - description: ID of the user to delete
+        explode: false
+        in: path
+        name: userId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: User deleted successfully
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Delete a user by ID
+      tags:
+      - User Management
+    get:
+      description: Retrieves the details of a specific user account by their unique
+        ID.
+      operationId: getUserById
+      parameters:
+      - description: ID of the user to retrieve
+        explode: false
+        in: path
+        name: userId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Successful operation
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Get a user by ID
+      tags:
+      - User Management
+    put:
+      description: "Updates an existing user's account details. Allows modification\
+        \ of email, names, active status, and role assignments."
+      operationId: updateUser
+      parameters:
+      - description: ID of the user to update
+        explode: false
+        in: path
+        name: userId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+        description: User object to be updated
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: User updated successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Update an existing user
+      tags:
+      - User Management
+  /roles:
+    get:
+      description: Retrieves a paginated list of all user roles. Supports query parameters
+        for pagination.
+      operationId: listRoles
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - description: Number of roles per page
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          default: 20
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+          description: A list of roles
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: List all roles
+      tags:
+      - Role Management
+    post:
+      description: Creates a new user role. Requires a role name. Optional fields
+        include description and a list of permissions.
+      operationId: createRole
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+        description: Role object to be created
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: Role created successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Role already exists
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Create a new role
+      tags:
+      - Role Management
+  /roles/{roleId}:
+    delete:
+      description: Deletes a specific user role by its unique ID. This operation may
+        affect users assigned to this role.
+      operationId: deleteRole
+      parameters:
+      - description: ID of the role to delete
+        explode: false
+        in: path
+        name: roleId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Role deleted successfully
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Delete a role by ID
+      tags:
+      - Role Management
+    get:
+      description: Retrieves the details of a specific user role by its unique ID.
+      operationId: getRoleById
+      parameters:
+      - description: ID of the role to retrieve
+        explode: false
+        in: path
+        name: roleId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: Successful operation
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Get a role by ID
+      tags:
+      - Role Management
+    put:
+      description: "Updates an existing user role. Allows modification of name, description,\
+        \ and permissions."
+      operationId: updateRole
+      parameters:
+      - description: ID of the role to update
+        explode: false
+        in: path
+        name: roleId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+        description: Role object to be updated
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: Role updated successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Update an existing role
+      tags:
+      - Role Management
+  /workflows/definitions:
+    get:
+      description: Retrieves a paginated list of all available workflow definitions
+        (templates). Supports query parameters for pagination.
+      operationId: listWorkflowDefinitions
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - description: Number of workflow definitions per page
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          default: 20
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinitionListResponse'
+          description: A list of workflow definitions
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: List all workflow definitions
+      tags:
+      - Workflow Definitions
+    post:
+      description: "Creates a new workflow definition (template). Requires a name,\
+        \ version, and a list of steps."
+      operationId: createWorkflowDefinition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowDefinitionRequest'
+        description: Workflow definition object to be created
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+          description: Workflow definition created successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Workflow definition already exists
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Create a new workflow definition
+      tags:
+      - Workflow Definitions
+  /workflows/definitions/{definitionId}:
+    delete:
+      description: Deletes a specific workflow definition by its unique ID. This may
+        affect the ability to start new workflow instances from this definition.
+      operationId: deleteWorkflowDefinition
+      parameters:
+      - description: ID of the workflow definition to delete
+        explode: false
+        in: path
+        name: definitionId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Workflow definition deleted successfully
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Delete a workflow definition by ID
+      tags:
+      - Workflow Definitions
+    get:
+      description: Retrieves the details of a specific workflow definition by its
+        unique ID.
+      operationId: getWorkflowDefinitionById
+      parameters:
+      - description: ID of the workflow definition to retrieve
+        explode: false
+        in: path
+        name: definitionId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+          description: Successful operation
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Get a workflow definition by ID
+      tags:
+      - Workflow Definitions
+    put:
+      description: "Updates an existing workflow definition. Allows modification of\
+        \ name, version, description, steps, and active status."
+      operationId: updateWorkflowDefinition
+      parameters:
+      - description: ID of the workflow definition to update
+        explode: false
+        in: path
+        name: definitionId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowDefinitionRequest'
+        description: Workflow definition object to be updated
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+          description: Workflow definition updated successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Update an existing workflow definition
+      tags:
+      - Workflow Definitions
+  /workflows/instances:
+    get:
+      description: "Retrieves a paginated list of all workflow instances, regardless\
+        \ of their status. Supports query parameters for pagination."
+      operationId: listWorkflowInstances
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - description: Number of workflow instances per page
+        explode: true
+        in: query
+        name: pageSize
+        required: false
+        schema:
+          default: 20
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceListResponse'
+          description: A list of workflow instances
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: List all workflow instances
+      tags:
+      - Workflow Instances
+    post:
+      description: Starts a new instance of a specified workflow definition. Requires
+        the workflow definition ID and can accept initial variables.
+      operationId: startWorkflowInstance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartWorkflowInstanceRequest'
+        description: Parameters to start a workflow instance
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+          description: Workflow instance started successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Invalid input or definition not found
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Workflow definition not found
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Start a new workflow instance
+      tags:
+      - Workflow Instances
+  /workflows/instances/{instanceId}:
+    get:
+      description: Retrieves the details and current state of a specific workflow
+        instance by its unique ID.
+      operationId: getWorkflowInstanceById
+      parameters:
+      - description: ID of the workflow instance to retrieve
+        explode: false
+        in: path
+        name: instanceId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+          description: Successful operation
+        "401":
+          content:
+            application/json:
+              examples:
+                missingToken:
+                  summary: Missing token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is missing.
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    statusCode: 401
+                    message: Authentication token is invalid or expired.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized - Authentication token is missing or invalid.
+        "403":
+          content:
+            application/json:
+              examples:
+                insufficientPermissions:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    message: You do not have the necessary permissions to perform
+                      this action.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - User does not have permission to access this resource.
+        "404":
+          content:
+            application/json:
+              examples:
+                resourceNotFound:
+                  summary: Resource not found
+                  value:
+                    statusCode: 404
+                    message: The requested resource was not found.
+                    details: User with ID '12345' does not exist.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found - The requested resource could not be found.
+        "500":
+          content:
+            application/json:
+              examples:
+                genericError:
+                  summary: Generic server error
+                  value:
+                    statusCode: 500
+                    message: An unexpected error occurred. Please try again later
+                      or contact support.
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error - An unexpected error occurred on the
+            server.
+      security:
+      - BearerAuth: []
+      summary: Get a workflow instance by ID
+      tags:
+      - Workflow Instances
+components:
+  responses:
+    UnauthorizedError:
+      content:
+        application/json:
+          examples:
+            missingToken:
+              summary: Missing token
+              value:
+                statusCode: 401
+                message: Authentication token is missing.
+            invalidToken:
+              summary: Invalid token
+              value:
+                statusCode: 401
+                message: Authentication token is invalid or expired.
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Unauthorized - Authentication token is missing or invalid.
+    ForbiddenError:
+      content:
+        application/json:
+          examples:
+            insufficientPermissions:
+              summary: Insufficient permissions
+              value:
+                statusCode: 403
+                message: You do not have the necessary permissions to perform this
+                  action.
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Forbidden - User does not have permission to access this resource.
+    NotFoundError:
+      content:
+        application/json:
+          examples:
+            resourceNotFound:
+              summary: Resource not found
+              value:
+                statusCode: 404
+                message: The requested resource was not found.
+                details: User with ID '12345' does not exist.
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Not Found - The requested resource could not be found.
+    ConflictError:
+      content:
+        application/json:
+          examples:
+            duplicateResource:
+              summary: Duplicate resource
+              value:
+                statusCode: 409
+                message: A resource with the specified identifier already exists.
+                details: User with email 'existing@example.com' already exists.
+            editConflict:
+              summary: Edit conflict
+              value:
+                statusCode: 409
+                message: The resource was modified by another process. Please refresh
+                  and try again.
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Conflict - The request could not be completed due to a conflict
+        with the current state of the resource.
+    InternalServerError:
+      content:
+        application/json:
+          examples:
+            genericError:
+              summary: Generic server error
+              value:
+                statusCode: 500
+                message: An unexpected error occurred. Please try again later or contact
+                  support.
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Internal Server Error - An unexpected error occurred on the server.
+  schemas:
+    ErrorResponse:
+      example:
+        details: The 'username' field is required.
+        message: Invalid input provided.
+        statusCode: 400
+      properties:
+        statusCode:
+          example: 400
+          type: integer
+        message:
+          example: Invalid input provided.
+          type: string
+        details:
+          example: The 'username' field is required.
+          nullable: true
+          type: string
+      type: object
+    UserLoginRequest:
+      example:
+        password: P@$$wOrd123!
+        username: adminuser
+      properties:
+        username:
+          description: The user's username.
+          example: adminuser
+          type: string
+        password:
+          description: The user's password.
+          example: P@$$wOrd123!
+          type: string
+      required:
+      - password
+      - username
+      type: object
+    LoginSuccessResponse:
+      example:
+        expiresIn: 3600
+        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        refreshToken: def50200f07711e9b210d663bd873d93
+      properties:
+        accessToken:
+          description: JWT access token.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          type: string
+        refreshToken:
+          description: Token used to refresh the access token.
+          example: def50200f07711e9b210d663bd873d93
+          type: string
+        expiresIn:
+          description: Access token validity period in seconds.
+          example: 3600
+          type: integer
+      type: object
+    RefreshTokenRequest:
+      example:
+        refreshToken: def50200f07711e9b210d663bd873d93
+      properties:
+        refreshToken:
+          description: The refresh token.
+          example: def50200f07711e9b210d663bd873d93
+          type: string
+      required:
+      - refreshToken
+      type: object
+    User:
+      example:
+        firstName: John
+        lastName: Doe
+        createdAt: 2023-01-15T10:30:00Z
+        roleIds:
+        - f47ac10b-58cc-4372-a567-0e02b2c3d479
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+        isActive: true
+        email: johndoe@example.com
+        username: johndoe
+        updatedAt: 2023-01-16T12:45:00Z
+      properties:
+        id:
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          format: uuid
+          readOnly: true
+          type: string
+        username:
+          example: johndoe
+          type: string
+        email:
+          example: johndoe@example.com
+          format: email
+          type: string
+        firstName:
+          example: John
+          nullable: true
+          type: string
+        lastName:
+          example: Doe
+          nullable: true
+          type: string
+        isActive:
+          default: true
+          example: true
+          type: boolean
+        roleIds:
+          description: List of role IDs assigned to the user.
+          example:
+          - f47ac10b-58cc-4372-a567-0e02b2c3d479
+          items:
+            format: uuid
+            type: string
+          type: array
+        createdAt:
+          example: 2023-01-15T10:30:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        updatedAt:
+          example: 2023-01-16T12:45:00Z
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
+    UserListResponse:
+      example:
+        pagination:
+          totalItems: 100
+          totalPages: 5
+          pageSize: 20
+          currentPage: 1
+        users:
+        - firstName: John
+          lastName: Doe
+          createdAt: 2023-01-15T10:30:00Z
+          roleIds:
+          - f47ac10b-58cc-4372-a567-0e02b2c3d479
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          isActive: true
+          email: johndoe@example.com
+          username: johndoe
+          updatedAt: 2023-01-16T12:45:00Z
+        - firstName: John
+          lastName: Doe
+          createdAt: 2023-01-15T10:30:00Z
+          roleIds:
+          - f47ac10b-58cc-4372-a567-0e02b2c3d479
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          isActive: true
+          email: johndoe@example.com
+          username: johndoe
+          updatedAt: 2023-01-16T12:45:00Z
+      properties:
+        users:
+          items:
+            $ref: '#/components/schemas/User'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      type: object
+    Pagination:
+      example:
+        totalItems: 100
+        totalPages: 5
+        pageSize: 20
+        currentPage: 1
+      properties:
+        totalItems:
+          example: 100
+          type: integer
+        totalPages:
+          example: 5
+          type: integer
+        currentPage:
+          example: 1
+          type: integer
+        pageSize:
+          example: 20
+          type: integer
+      type: object
+    CreateUserRequest:
+      example:
+        firstName: New
+        lastName: User
+        password: Str0ngP@sswOrd!
+        roleIds:
+        - f47ac10b-58cc-4372-a567-0e02b2c3d479
+        email: newuser@example.com
+        username: newuser
+      properties:
+        username:
+          example: newuser
+          type: string
+        email:
+          example: newuser@example.com
+          format: email
+          type: string
+        password:
+          example: Str0ngP@sswOrd!
+          format: password
+          minLength: 8
+          type: string
+        firstName:
+          example: New
+          nullable: true
+          type: string
+        lastName:
+          example: User
+          nullable: true
+          type: string
+        roleIds:
+          description: List of role IDs to assign to the new user.
+          example:
+          - f47ac10b-58cc-4372-a567-0e02b2c3d479
+          items:
+            format: uuid
+            type: string
+          type: array
+      required:
+      - email
+      - password
+      - username
+      type: object
+    UpdateUserRequest:
+      example:
+        firstName: Updated
+        lastName: Userley
+        roleIds:
+        - a1b2c3d4-e5f6-7890-1234-567890abcdef
+        isActive: false
+        email: updateduser@example.com
+      properties:
+        email:
+          example: updateduser@example.com
+          format: email
+          type: string
+        firstName:
+          example: Updated
+          nullable: true
+          type: string
+        lastName:
+          example: Userley
+          nullable: true
+          type: string
+        isActive:
+          example: false
+          type: boolean
+        roleIds:
+          description: List of role IDs to assign to the user. This will replace existing
+            roles.
+          example:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          items:
+            format: uuid
+            type: string
+          type: array
+      type: object
+    Role:
+      example:
+        createdAt: 2023-01-10T09:00:00Z
+        permissions:
+        - users:create
+        - users:read
+        - users:update
+        - users:delete
+        name: Administrator
+        description: Has full system access.
+        id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+        updatedAt: 2023-01-10T09:00:00Z
+      properties:
+        id:
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: The name of the role.
+          example: Administrator
+          type: string
+        description:
+          description: A description of the role.
+          example: Has full system access.
+          nullable: true
+          type: string
+        permissions:
+          description: List of permissions associated with the role.
+          example:
+          - users:create
+          - users:read
+          - users:update
+          - users:delete
+          items:
+            type: string
+          type: array
+        createdAt:
+          example: 2023-01-10T09:00:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        updatedAt:
+          example: 2023-01-10T09:00:00Z
+          format: date-time
+          readOnly: true
+          type: string
+      required:
+      - name
+      type: object
+    RoleListResponse:
+      example:
+        pagination:
+          totalItems: 100
+          totalPages: 5
+          pageSize: 20
+          currentPage: 1
+        roles:
+        - createdAt: 2023-01-10T09:00:00Z
+          permissions:
+          - users:create
+          - users:read
+          - users:update
+          - users:delete
+          name: Administrator
+          description: Has full system access.
+          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          updatedAt: 2023-01-10T09:00:00Z
+        - createdAt: 2023-01-10T09:00:00Z
+          permissions:
+          - users:create
+          - users:read
+          - users:update
+          - users:delete
+          name: Administrator
+          description: Has full system access.
+          id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          updatedAt: 2023-01-10T09:00:00Z
+      properties:
+        roles:
+          items:
+            $ref: '#/components/schemas/Role'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      type: object
+    CreateRoleRequest:
+      example:
+        permissions:
+        - content:edit
+        - content:publish
+        name: Editor
+        description: Can edit content.
+      properties:
+        name:
+          example: Editor
+          type: string
+        description:
+          example: Can edit content.
+          nullable: true
+          type: string
+        permissions:
+          description: List of permissions for the new role.
+          example:
+          - content:edit
+          - content:publish
+          items:
+            type: string
+          type: array
+      required:
+      - name
+      type: object
+    UpdateRoleRequest:
+      example:
+        permissions:
+        - content:edit
+        - content:publish
+        - content:approve
+        name: Senior Editor
+        description: Can edit and approve content.
+      properties:
+        name:
+          example: Senior Editor
+          type: string
+        description:
+          example: Can edit and approve content.
+          nullable: true
+          type: string
+        permissions:
+          description: List of permissions for the role. This will replace existing
+            permissions.
+          example:
+          - content:edit
+          - content:publish
+          - content:approve
+          items:
+            type: string
+          type: array
+      type: object
+    WorkflowDefinitionStep:
+      example:
+        nextSteps:
+        - a1b2c3d4-e5f6-7890-1234-567890abcdef
+        - 123e4567-e89b-12d3-a456-426614174000
+        name: ApprovalStep
+        id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+        type: manual_approval
+        config:
+          assignee_group: editors
+          notification_template: approval_request_email
+        isInitialStep: false
+      properties:
+        id:
+          description: Unique identifier for the step within the definition.
+          example: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          format: uuid
+          type: string
+        name:
+          description: Human-readable name for the step.
+          example: ApprovalStep
+          type: string
+        type:
+          description: "Type of the step (e.g., 'manual_approval', 'automated_task',\
+            \ 'notification')."
+          example: manual_approval
+          type: string
+        config:
+          additionalProperties: true
+          description: Step-specific configuration parameters.
+          example:
+            assignee_group: editors
+            notification_template: approval_request_email
+          type: object
+        nextSteps:
+          description: List of IDs of the next possible steps in the workflow.
+          example:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          items:
+            format: uuid
+            type: string
+          type: array
+        isInitialStep:
+          default: false
+          description: Indicates if this is the starting step of the workflow.
+          type: boolean
+      required:
+      - name
+      - type
+      type: object
+    WorkflowDefinition:
+      example:
+        createdAt: 2023-02-01T11:00:00Z
+        name: DocumentApprovalProcess
+        description: A standard process for document review and approval.
+        id: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        isActive: true
+        version: 1.0.0
+        steps:
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+        updatedAt: 2023-02-02T14:15:00Z
+      properties:
+        id:
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: Human-readable name for the workflow definition.
+          example: DocumentApprovalProcess
+          type: string
+        version:
+          description: Version of the workflow definition.
+          example: 1.0.0
+          type: string
+        description:
+          example: A standard process for document review and approval.
+          nullable: true
+          type: string
+        steps:
+          description: The sequence of steps that define the workflow.
+          items:
+            $ref: '#/components/schemas/WorkflowDefinitionStep'
+          type: array
+        isActive:
+          default: true
+          description: Whether this workflow definition is currently active and can
+            be used to start new instances.
+          type: boolean
+        createdAt:
+          example: 2023-02-01T11:00:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        updatedAt:
+          example: 2023-02-02T14:15:00Z
+          format: date-time
+          readOnly: true
+          type: string
+      required:
+      - name
+      - steps
+      - version
+      type: object
+    WorkflowDefinitionListResponse:
+      example:
+        pagination:
+          totalItems: 100
+          totalPages: 5
+          pageSize: 20
+          currentPage: 1
+        workflowDefinitions:
+        - createdAt: 2023-02-01T11:00:00Z
+          name: DocumentApprovalProcess
+          description: A standard process for document review and approval.
+          id: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          isActive: true
+          version: 1.0.0
+          steps:
+          - nextSteps:
+            - a1b2c3d4-e5f6-7890-1234-567890abcdef
+            - 123e4567-e89b-12d3-a456-426614174000
+            name: ApprovalStep
+            id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+            type: manual_approval
+            config:
+              assignee_group: editors
+              notification_template: approval_request_email
+            isInitialStep: false
+          - nextSteps:
+            - a1b2c3d4-e5f6-7890-1234-567890abcdef
+            - 123e4567-e89b-12d3-a456-426614174000
+            name: ApprovalStep
+            id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+            type: manual_approval
+            config:
+              assignee_group: editors
+              notification_template: approval_request_email
+            isInitialStep: false
+          updatedAt: 2023-02-02T14:15:00Z
+        - createdAt: 2023-02-01T11:00:00Z
+          name: DocumentApprovalProcess
+          description: A standard process for document review and approval.
+          id: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          isActive: true
+          version: 1.0.0
+          steps:
+          - nextSteps:
+            - a1b2c3d4-e5f6-7890-1234-567890abcdef
+            - 123e4567-e89b-12d3-a456-426614174000
+            name: ApprovalStep
+            id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+            type: manual_approval
+            config:
+              assignee_group: editors
+              notification_template: approval_request_email
+            isInitialStep: false
+          - nextSteps:
+            - a1b2c3d4-e5f6-7890-1234-567890abcdef
+            - 123e4567-e89b-12d3-a456-426614174000
+            name: ApprovalStep
+            id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+            type: manual_approval
+            config:
+              assignee_group: editors
+              notification_template: approval_request_email
+            isInitialStep: false
+          updatedAt: 2023-02-02T14:15:00Z
+      properties:
+        workflowDefinitions:
+          items:
+            $ref: '#/components/schemas/WorkflowDefinition'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      type: object
+    CreateWorkflowDefinitionRequest:
+      example:
+        name: NewContentReview
+        description: Process for reviewing newly submitted content.
+        version: "1.0"
+        steps:
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+      properties:
+        name:
+          example: NewContentReview
+          type: string
+        version:
+          example: "1.0"
+          type: string
+        description:
+          example: Process for reviewing newly submitted content.
+          nullable: true
+          type: string
+        steps:
+          items:
+            $ref: '#/components/schemas/WorkflowDefinitionStep'
+          type: array
+      required:
+      - name
+      - steps
+      - version
+      type: object
+    UpdateWorkflowDefinitionRequest:
+      example:
+        name: UpdatedContentReviewV2
+        description: "Revised process for reviewing updated content, version 2.1."
+        isActive: true
+        version: "2.1"
+        steps:
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+        - nextSteps:
+          - a1b2c3d4-e5f6-7890-1234-567890abcdef
+          - 123e4567-e89b-12d3-a456-426614174000
+          name: ApprovalStep
+          id: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          type: manual_approval
+          config:
+            assignee_group: editors
+            notification_template: approval_request_email
+          isInitialStep: false
+      properties:
+        name:
+          example: UpdatedContentReviewV2
+          type: string
+        version:
+          example: "2.1"
+          type: string
+        description:
+          example: "Revised process for reviewing updated content, version 2.1."
+          nullable: true
+          type: string
+        steps:
+          description: The updated sequence of steps. This will replace the existing
+            steps.
+          items:
+            $ref: '#/components/schemas/WorkflowDefinitionStep'
+          type: array
+        isActive:
+          example: true
+          type: boolean
+      type: object
+    WorkflowInstance:
+      example:
+        currentStepId: c1b2a3d4-e5f6-7890-1234-567890abcdef
+        workflowDefinitionId: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        variables:
+          documentId: doc-xyz-123
+          approvedBy: null
+        endedAt: 2023-03-02T14:30:00Z
+        startedAt: 2023-03-01T10:00:00Z
+        id: 123e4567-e89b-12d3-a456-426614174000
+        workflowDefinitionVersion: 1.0.0
+        status: running
+        updatedAt: 2023-03-01T10:05:00Z
+      properties:
+        id:
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          readOnly: true
+          type: string
+        workflowDefinitionId:
+          description: ID of the WorkflowDefinition this instance is based on.
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          format: uuid
+          type: string
+        workflowDefinitionVersion:
+          description: Version of the WorkflowDefinition used for this instance.
+          example: 1.0.0
+          readOnly: true
+          type: string
+        status:
+          description: Current status of the workflow instance.
+          enum:
+          - running
+          - completed
+          - failed
+          - suspended
+          - cancelled
+          - pending_retry
+          example: running
+          type: string
+        currentStepId:
+          description: ID of the current step the instance is waiting on or executing.
+          example: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          format: uuid
+          nullable: true
+          type: string
+        variables:
+          additionalProperties: true
+          description: Key-value pairs of variables associated with this workflow
+            instance.
+          example:
+            documentId: doc-xyz-123
+            approvedBy: null
+          type: object
+        startedAt:
+          example: 2023-03-01T10:00:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        updatedAt:
+          example: 2023-03-01T10:05:00Z
+          format: date-time
+          readOnly: true
+          type: string
+        endedAt:
+          example: 2023-03-02T14:30:00Z
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+      required:
+      - status
+      - workflowDefinitionId
+      type: object
+    WorkflowInstanceListResponse:
+      example:
+        workflowInstances:
+        - currentStepId: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          workflowDefinitionId: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          variables:
+            documentId: doc-xyz-123
+            approvedBy: null
+          endedAt: 2023-03-02T14:30:00Z
+          startedAt: 2023-03-01T10:00:00Z
+          id: 123e4567-e89b-12d3-a456-426614174000
+          workflowDefinitionVersion: 1.0.0
+          status: running
+          updatedAt: 2023-03-01T10:05:00Z
+        - currentStepId: c1b2a3d4-e5f6-7890-1234-567890abcdef
+          workflowDefinitionId: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          variables:
+            documentId: doc-xyz-123
+            approvedBy: null
+          endedAt: 2023-03-02T14:30:00Z
+          startedAt: 2023-03-01T10:00:00Z
+          id: 123e4567-e89b-12d3-a456-426614174000
+          workflowDefinitionVersion: 1.0.0
+          status: running
+          updatedAt: 2023-03-01T10:05:00Z
+        pagination:
+          totalItems: 100
+          totalPages: 5
+          pageSize: 20
+          currentPage: 1
+      properties:
+        workflowInstances:
+          items:
+            $ref: '#/components/schemas/WorkflowInstance'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      type: object
+    StartWorkflowInstanceRequest:
+      example:
+        workflowDefinitionId: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        variables:
+          documentId: doc-abc-789
+          submitterUserId: user-xyz-123
+      properties:
+        workflowDefinitionId:
+          description: ID of the WorkflowDefinition to start an instance of.
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+          format: uuid
+          type: string
+        variables:
+          additionalProperties: true
+          description: Initial variables to start the workflow instance with.
+          example:
+            documentId: doc-abc-789
+            submitterUserId: user-xyz-123
+          nullable: true
+          type: object
+      required:
+      - workflowDefinitionId
+      type: object
+  securitySchemes:
+    BearerAuth:
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token for authentication. The token should be included in the
+        Authorization header as 'Bearer {token}'.
+        Example: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+      scheme: bearer
+      type: http
+
